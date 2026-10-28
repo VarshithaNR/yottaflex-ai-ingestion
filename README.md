@@ -1,45 +1,285 @@
+
 # Reliable API Data Ingestion Pipeline
 
-A runnable local demonstration of paginated order ingestion with bounded retries, raw page retention, validation, quarantine, SQLite event history/current state, and durable page checkpoints.
+A runnable local demonstration of reliable paginated API ingestion with bounded retries, rate-limit handling, raw-response retention, schema validation, record quarantine, SQLite event history, current-state publishing, and durable page checkpoints.
 
-## Requirements and setup
+## 1. Project Overview
 
-Python 3.11+ (the inspected environment is Python 3.14.6). Create an environment and install pinned dependencies:
+This project demonstrates how to build a reliable data ingestion pipeline that retrieves paginated order data from a mock REST API, validates incoming records, stores valid data, and preserves invalid records for investigation.
+
+The pipeline is designed to support repeatable execution, controlled failure scenarios, checkpoint-based recovery, and reconciliation of source and target data.
+
+### Key Features
+
+- Paginated API ingestion
+- Configurable authentication
+- HTTP 429 and transient HTTP 500 retry handling
+- Bounded retries with backoff
+- Raw API response retention
+- Schema and business-rule validation
+- Duplicate detection and quarantine
+- SQLite storage for current state and event history
+- Durable page checkpoints
+- Run reports and operational metrics
+- Deterministic synthetic data generation
+- Automated tests and performance measurement
+
+## 2. Technology Stack
+
+- **Language:** Python 3.11+
+- **Mock API:** FastAPI and Uvicorn
+- **HTTP client:** Requests
+- **Validation:** Pydantic and application-level business rules
+- **Storage:** SQLite
+- **Testing:** Pytest
+- **Data format:** JSON
+
+The project is designed to run locally without paid cloud services or external API credentials.
+
+## 3. Requirements and Setup
+
+Python 3.11 or newer is required. The development environment used for the recorded execution was Python 3.14.6 on Windows.
+
+### Windows PowerShell
+
+Create and activate a virtual environment:
 
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```powershell
 python -m pip install -r requirements.txt
 ```
 
-Unix/macOS: `python3 -m venv .venv && . .venv/bin/activate && python -m pip install -r requirements.txt`.
+### Unix/macOS
 
-Copy `.env.example` to `.env` and edit values as needed. Configuration loads that file with `python-dotenv`; environment variables override file values. Defaults are local dummy credentials only.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
 
-## Run the demo
+### Configuration
 
-In terminal 1: `python -m uvicorn app.mock_api:app --host 127.0.0.1 --port 8000`; open `http://127.0.0.1:8000/docs` to inspect the source API. A starter customer/order dataset and its separately stored expected summary are checked in under `data/sample/`.
+Copy `.env.example` to `.env` and configure the required values.
 
-In terminal 2: `python -m app.cli ingest`; inspect totals with `python -m app.cli report`; rerun to observe checkpoint behavior. `python -m app.cli ingest --backfill` deliberately starts from page 1 and relies on event idempotency. Reset demo state with `python -m app.cli reset --yes` (destructive: removes the configured SQLite database).
+**Important:** The application reads environment variables directly and does not automatically load `.env`. Export the values in your shell or configure an appropriate environment loader if needed.
 
-The mock API supports deterministic `retry-500-once`, `rate-limit-once`, `malformed-json-once`, `empty`, and `quality-mix` scenarios through `MOCK_SCENARIO`. For example, in PowerShell set `$env:MOCK_SCENARIO='retry-500-once'` before starting Uvicorn; on Unix use `MOCK_SCENARIO=retry-500-once python -m uvicorn app.mock_api:app`. Restart the service to reset its deterministic per-process fault counters. Normal mode is deterministic and succeeds.
+The default credentials are local dummy credentials. Never commit real tokens or secrets.
 
-Set `MOCK_RECORDS` for workload size, `PAGE_SIZE` for request pages, and `DATABASE_PATH`, `RAW_DIR`, `QUARANTINE_DIR`, `REPORTS_DIR`, `API_URL`, `API_TOKEN`, `REQUEST_TIMEOUT`, `MAX_RETRIES`, and `BACKOFF_BASE` for client configuration. Generate tracked starter data with `python -m app.cli generate --orders 25`; use `--scenario quality-mix` to generate labeled duplicate, conflict, missing-field, invalid-FK, late-event, and additive-schema cases. The expected-case summary is stored separately from source records. `MOCK_SCENARIO=empty` provides a true empty-source run.
+## 4. Running the Demo
 
-## Data and operational behavior
+Start the mock API in the first terminal:
 
-See [architecture](docs/architecture.md), [data dictionary](docs/data_dictionary.md), [design decisions](docs/design_decisions.md), and [reconciliation SQL](docs/reconciliation.sql). Raw responses are retained in `artifacts/raw`; run reports are JSON in `artifacts/reports` (configurable with `REPORTS_DIR`). Record validation errors and foreign-key failures are persisted in SQLite and exported as one JSON Lines quarantine manifest per run under `artifacts/quarantine`. A page advances only after database writes commit. Failed pages are fetched again after restart. Page-number pagination cannot guarantee completeness against a changing upstream dataset; use snapshot IDs or stable cursors for such sources.
+```bash
+python -m uvicorn app.mock_api:app --host 127.0.0.1 --port 8000
+```
 
-Customer email and required fields are validated; orders require non-negative decimal amounts, an allowlisted currency/status, timezone-aware timestamps, event IDs, and existing customers. Unknown additive fields are retained in raw pages and accepted for compatibility. Reconciliation compares raw source event IDs with durable event history, verifies current orders against latest event state and amount aggregates, and reports foreign-key failures.
+Keep the API running.
 
-## Tests and evidence
+In a second terminal, activate the virtual environment and start ingestion:
 
-Run `python -m pytest -q`. The observed project test result is recorded in [validation results](docs/validation_results.md). To reproduce the larger run, set `MOCK_RECORDS=100000`, `PAGE_SIZE=1000`, and a fresh `DATABASE_PATH`, then start Uvicorn and run the CLI. PowerShell example: `$env:MOCK_RECORDS='100000'; $env:PAGE_SIZE='1000'; $env:DATABASE_PATH='data/benchmark.sqlite'; python -m uvicorn app.mock_api:app --host 127.0.0.1 --port 8000` in one terminal, then set the same database and page-size variables in terminal 2 and run `python -m app.cli ingest`. Unix example: `MOCK_RECORDS=100000 PAGE_SIZE=1000 DATABASE_PATH=data/benchmark.sqlite python -m uvicorn app.mock_api:app --host 127.0.0.1 --port 8000`; set the same client variables in terminal 2. The final-schema local run completed in 54.41 seconds (2,205.54 raw rows/second) on Python 3.14.6/Windows 11 with an 8 logical-core Intel host. This is an illustrative single run, not a controlled performance comparison.
+```bash
+python -m app.cli ingest
+```
 
-Target entity row counts can differ from source rows: source rows may repeat event IDs, invalid records are quarantined, multiple events can update one order, and customers are separate entities. `order_events` preserves logical event history while `orders` contains one current row per order. A page-sized SQLite transaction is the primary throughput optimization; it amortizes commit cost while keeping target writes and checkpoint advancement atomic. The benchmark is not a controlled comparison against row-at-a-time commits.
+Generate a report:
 
-## Submission status
+```bash
+python -m app.cli report
+```
 
-This working tree has local Git commits but does not yet have a public GitHub remote. Do not claim the public repository requirement is complete until the candidate connects GitHub, selects the destination repository, and verifies that the push succeeded.
+Run ingestion again to observe checkpoint behavior.
 
-Sample raw API pages, labeled quality cases, and quarantine manifests are checked in under `data/sample/`; observed normal, quality-mix, and 100,000-order benchmark reports are under `artifacts/reports/`.
+### Backfill
+
+To deliberately start ingestion from the first page again:
+
+```bash
+python -m app.cli ingest --backfill
+```
+
+Backfill relies on event idempotency to prevent repeated logical events from being inserted unnecessarily.
+
+### Reset Demo State
+
+```bash
+python -m app.cli reset --yes
+```
+
+**Warning:** Reset is destructive and removes the configured SQLite database. Back up any data you want to retain.
+
+## 5. Simulating API Failures
+
+The mock API supports controlled failure scenarios.
+
+### Transient HTTP 500
+
+Windows PowerShell:
+
+```powershell
+$env:MOCK_SCENARIO = 'retry-500-once'
+python -m uvicorn app.mock_api:app --host 127.0.0.1 --port 8000
+```
+
+Unix/macOS:
+
+```bash
+MOCK_SCENARIO=retry-500-once python -m uvicorn app.mock_api:app --host 127.0.0.1 --port 8000
+```
+
+### HTTP 429 Rate Limit
+
+Set the scenario to `rate-limit-once` using the same approach. The mock API returns a rate-limit response with a `Retry-After` header.
+
+The client should respect retry limits and apply the configured retry policy.
+
+Normal mode uses deterministic data and does not deliberately inject failures.
+
+## 6. Configuration Options
+
+The pipeline supports the following configuration variables:
+
+| Variable | Purpose |
+|---|---|
+| `MOCK_RECORDS` | Synthetic workload size |
+| `PAGE_SIZE` | Records requested per page |
+| `DATABASE_PATH` | SQLite database location |
+| `RAW_DIR` | Directory for raw API responses |
+| `QUARANTINE_DIR` | Directory for quarantine artifacts |
+| `API_URL` | Mock API base URL |
+| `API_TOKEN` | Authentication token |
+| `REQUEST_TIMEOUT` | HTTP request timeout |
+| `MAX_RETRIES` | Maximum retry attempts |
+| `BACKOFF_BASE` | Base delay for exponential backoff |
+
+The data generator produces deterministic synthetic customers and orders.
+
+**Empty-input limitation:** Setting `MOCK_RECORDS=0` does not currently produce a completely empty database input because the generator still creates a customer row. This should be considered when interpreting empty-batch tests.
+
+## 7. Data Model and Validation
+
+See the following documentation:
+
+- [Architecture](docs/architecture.md)
+- [Data Dictionary](docs/data_dictionary.md)
+- [Design Decisions and Trade-offs](docs/design_decisions.md)
+- [Validation Results](docs/validation_results.md)
+
+### Data Quality Rules
+
+The pipeline validates customer and order records.
+
+Customer validation includes required fields and email format.
+
+Order validation includes:
+
+- Required identifiers and source event IDs
+- Non-negative monetary amounts
+- Allowed currency and status values
+- Timezone-aware timestamps
+- Referential integrity against existing customers
+
+Invalid records and foreign-key failures are preserved for investigation rather than silently discarded.
+
+### Raw Data and Quarantine
+
+Raw API responses are retained under `artifacts/raw`.
+
+Quarantine records are stored with validation or processing errors under the configured quarantine location. These artifacts help trace rejected data to its source.
+
+Unknown additive fields are retained in raw responses and accepted for compatibility. A dedicated field-level schema-drift report is not currently implemented.
+
+## 8. Checkpoints, Recovery and Idempotency
+
+A page checkpoint advances only after the corresponding database writes have committed.
+
+If processing fails before the checkpoint advances, the failed page can be fetched again after restart. Event-level idempotency is used to prevent repeated logical events from creating unintended duplicates.
+
+The project supports backfill by restarting from the first page.
+
+**Known limitation:** Page-number pagination alone cannot guarantee complete ingestion if the upstream dataset changes between requests. A production implementation should prefer stable cursors, source snapshots, or another source-supported consistency mechanism.
+
+The pipeline also needs to account for the boundary between database transactions and file-based raw-response retention when recovering from partial failures.
+
+## 9. Automated Tests
+
+Run the test suite:
+
+```bash
+python -m pytest -q
+```
+
+The recorded test execution reported **12 passed**.
+
+Refer to `docs/validation_results.md` for the recorded test and execution evidence. Rerun the tests in your own environment before submission and update the documentation if results differ.
+
+## 10. Performance Measurement
+
+The recorded benchmark for 100,000 orders reported:
+
+| Metric | Recorded result |
+|---|---:|
+| Input orders | 100,000 |
+| Page size | 1,000 |
+| Elapsed time | 36.04 seconds |
+| Reported throughput | 3,329.78 raw rows/second |
+| Environment | Python 3.14.6, Windows |
+
+These are results from one recorded run, not a controlled benchmark. Performance may vary with hardware, storage, configuration, and workload.
+
+A reasonable optimization to evaluate is batched SQLite writes with appropriately selected indexes. Any claimed improvement should be supported by a repeatable before-and-after measurement.
+
+## 11. Reconciliation
+
+Source and target row counts do not necessarily match.
+
+Differences can arise because:
+
+- Duplicate source events are deduplicated.
+- Invalid records are quarantined.
+- Multiple events may update the same order.
+- Customer records and order records represent separate entities.
+- Event history preserves multiple logical changes while the current-state table stores one row per order.
+
+Reconciliation should compare the appropriate grains and report accepted, rejected, duplicate, inserted, updated, and current-state counts separately.
+
+## 12. Known Limitations
+
+- The mock API does not reproduce every behavior of a real external API.
+- Page-number pagination can be inconsistent when upstream data changes during ingestion.
+- Dedicated field-level schema-drift reporting is not yet implemented.
+- File-based raw retention and SQLite transactions do not share a single atomic transaction.
+- The recorded benchmark represents one environment and workload.
+- Empty-input generation requires refinement because a customer record is still generated when the configured order count is zero.
+
+These limitations are documented so reviewers can distinguish demonstrated behavior from future improvements.
+
+## 13. Future Improvements
+
+Potential improvements include:
+
+- Stable cursor or snapshot-based pagination
+- More comprehensive schema-drift reporting
+- Stronger recovery coordination between raw-file persistence and database transactions
+- Additional fault-injection scenarios
+- Controlled performance comparisons
+- Structured monitoring and alerting for operational failures
+
+## 14. AI Assistance Disclosure
+
+AI tools were used during development for assistance with implementation, debugging, testing ideas, and documentation, where applicable.
+
+The candidate should maintain the actual prompt history, review the implementation, rerun tests, validate the recorded results, and ensure that the final disclosure accurately reflects their contribution.
+
+See `prompt_history/prompts.md` for the recorded prompts.
+
+## 15. Repository Contents
+
+The repository contains the pipeline source code, tests, configuration examples, sample data, generated artifacts, and supporting documentation.
+
+Before submission, verify that the public GitHub repository includes the required files, contains no secrets or sensitive data, and can be cloned and executed using the documented instructions.
