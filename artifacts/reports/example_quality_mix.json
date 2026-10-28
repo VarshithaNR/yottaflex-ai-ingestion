@@ -1,0 +1,39 @@
+{
+  "run_id": "e44523a5-81b5-4de7-b881-24c0fd9f55f1",
+  "pages_fetched": 2,
+  "raw_records": 35,
+  "accepted_records": 32,
+  "inserted_records": 25,
+  "updated_records": 0,
+  "duplicates": 1,
+  "rejected_records": 3,
+  "retries": 0,
+  "quarantine_file": "data/sample/quarantine/example_quality_mix.jsonl",
+  "customers": 5,
+  "orders": 25,
+  "order_events": 26,
+  "elapsed_seconds": 0.3966606000003594,
+  "records_per_second": 88.2366436191754,
+  "source_unique_event_ids_this_run": 28,
+  "source_event_ids_found_in_target_history": 26,
+  "source_event_ids_not_in_target_history": 2,
+  "unexpected_source_fields": {
+    "unexpected_source_flag": 6
+  },
+  "target_table_counts": {
+    "customers": 5,
+    "orders": 25,
+    "order_events": 26
+  },
+  "run_started_at": "2026-10-28T16:08:29.683592+05:30",
+  "run_ended_at": "2026-10-28T16:08:29.920262+05:30",
+  "run_status": "succeeded",
+  "referential_integrity_failures": 0,
+  "current_orders_match_latest_event_state": true,
+  "current_order_amounts_match_event_history_by_currency": {
+    "USD": true
+  },
+  "current_order_amount_by_currency": {
+    "USD": "11281.88"
+  }
+}

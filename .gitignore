@@ -10,3 +10,6 @@ artifacts/reports/*
 !artifacts/raw/.gitkeep
 !artifacts/quarantine/.gitkeep
 !artifacts/reports/.gitkeep
+!artifacts/reports/example_run.json
+!artifacts/reports/example_quality_mix.json
+!artifacts/reports/example_benchmark.json

@@ -1,0 +1,277 @@
+[
+  {
+    "order_id": "O00000000",
+    "customer_id": "C0000000",
+    "amount": "139.14",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:00+00:00",
+    "source_event_id": "EVT-00000000",
+    "unexpected_source_flag": "additive-schema-change"
+  },
+  {
+    "order_id": "O00000001",
+    "customer_id": "C0000001",
+    "amount": "508.92",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:01+00:00",
+    "source_event_id": "EVT-00000001"
+  },
+  {
+    "order_id": "O00000002",
+    "customer_id": "C0000002",
+    "amount": "133.02",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:02+00:00",
+    "source_event_id": "EVT-00000002"
+  },
+  {
+    "order_id": "O00000003",
+    "customer_id": "C0000003",
+    "amount": "998.03",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:03+00:00",
+    "source_event_id": "EVT-00000003"
+  },
+  {
+    "order_id": "O00000004",
+    "customer_id": "C0000004",
+    "amount": "502.17",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:04+00:00",
+    "source_event_id": "EVT-00000004"
+  },
+  {
+    "order_id": "O00000005",
+    "customer_id": "C0000000",
+    "amount": "347.73",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:05+00:00",
+    "source_event_id": "EVT-00000005"
+  },
+  {
+    "order_id": "O00000006",
+    "customer_id": "C0000001",
+    "amount": "720.80",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:06+00:00",
+    "source_event_id": "EVT-00000006"
+  },
+  {
+    "order_id": "O00000007",
+    "customer_id": "C0000002",
+    "amount": "364.56",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:07+00:00",
+    "source_event_id": "EVT-00000007"
+  },
+  {
+    "order_id": "O00000008",
+    "customer_id": "C0000003",
+    "amount": "834.23",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:08+00:00",
+    "source_event_id": "EVT-00000008"
+  },
+  {
+    "order_id": "O00000009",
+    "customer_id": "C0000004",
+    "amount": "18.61",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:09+00:00",
+    "source_event_id": "EVT-00000009"
+  },
+  {
+    "order_id": "O00000010",
+    "customer_id": "C0000000",
+    "amount": "278.27",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:10+00:00",
+    "source_event_id": "EVT-00000010"
+  },
+  {
+    "order_id": "O00000011",
+    "customer_id": "C0000001",
+    "amount": "444.51",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:11+00:00",
+    "source_event_id": "EVT-00000011"
+  },
+  {
+    "order_id": "O00000012",
+    "customer_id": "C0000002",
+    "amount": "882.72",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:12+00:00",
+    "source_event_id": "EVT-00000012"
+  },
+  {
+    "order_id": "O00000013",
+    "customer_id": "C0000003",
+    "amount": "347.13",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:13+00:00",
+    "source_event_id": "EVT-00000013"
+  },
+  {
+    "order_id": "O00000014",
+    "customer_id": "C0000004",
+    "amount": "740.74",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:14+00:00",
+    "source_event_id": "EVT-00000014"
+  },
+  {
+    "order_id": "O00000015",
+    "customer_id": "C0000000",
+    "amount": "405.39",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:15+00:00",
+    "source_event_id": "EVT-00000015"
+  },
+  {
+    "order_id": "O00000016",
+    "customer_id": "C0000001",
+    "amount": "418.83",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:16+00:00",
+    "source_event_id": "EVT-00000016"
+  },
+  {
+    "order_id": "O00000017",
+    "customer_id": "C0000002",
+    "amount": "348.45",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:17+00:00",
+    "source_event_id": "EVT-00000017"
+  },
+  {
+    "order_id": "O00000018",
+    "customer_id": "C0000003",
+    "amount": "82.96",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:18+00:00",
+    "source_event_id": "EVT-00000018"
+  },
+  {
+    "order_id": "O00000019",
+    "customer_id": "C0000004",
+    "amount": "473.79",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:19+00:00",
+    "source_event_id": "EVT-00000019"
+  },
+  {
+    "order_id": "O00000020",
+    "customer_id": "C0000000",
+    "amount": "286.33",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:20+00:00",
+    "source_event_id": "EVT-00000020"
+  },
+  {
+    "order_id": "O00000021",
+    "customer_id": "C0000001",
+    "amount": "672.76",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:21+00:00",
+    "source_event_id": "EVT-00000021"
+  },
+  {
+    "order_id": "O00000022",
+    "customer_id": "C0000002",
+    "amount": "72.04",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:22+00:00",
+    "source_event_id": "EVT-00000022"
+  },
+  {
+    "order_id": "O00000023",
+    "customer_id": "C0000003",
+    "amount": "412.98",
+    "currency": "USD",
+    "status": "shipped",
+    "updated_at": "2025-01-01T00:00:23+00:00",
+    "source_event_id": "EVT-00000023"
+  },
+  {
+    "order_id": "O00000024",
+    "customer_id": "C0000004",
+    "amount": "847.77",
+    "currency": "USD",
+    "status": "paid",
+    "updated_at": "2025-01-01T00:00:24+00:00",
+    "source_event_id": "EVT-00000024"
+  },
+  {
+    "order_id": "O00000000",
+    "customer_id": "C0000000",
+    "amount": "139.14",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:00+00:00",
+    "source_event_id": "EVT-00000000",
+    "unexpected_source_flag": "additive-schema-change"
+  },
+  {
+    "order_id": "O00000000",
+    "customer_id": "C0000000",
+    "amount": "999.99",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:00+00:00",
+    "source_event_id": "EVT-00000000",
+    "unexpected_source_flag": "additive-schema-change"
+  },
+  {
+    "order_id": "O00000000",
+    "customer_id": "C0000000",
+    "amount": "139.14",
+    "currency": "USD",
+    "updated_at": "2025-01-01T00:00:00+00:00",
+    "source_event_id": "EVT-MISSING-STATUS",
+    "unexpected_source_flag": "additive-schema-change"
+  },
+  {
+    "order_id": "O-INVALID-FK",
+    "customer_id": "C-DOES-NOT-EXIST",
+    "amount": "139.14",
+    "currency": "USD",
+    "status": "pending",
+    "updated_at": "2025-01-01T00:00:00+00:00",
+    "source_event_id": "EVT-INVALID-FK",
+    "unexpected_source_flag": "additive-schema-change"
+  },
+  {
+    "order_id": "O00000000",
+    "customer_id": "C0000000",
+    "amount": "139.14",
+    "currency": "USD",
+    "status": "refunded",
+    "updated_at": "2024-01-01T00:00:00+00:00",
+    "source_event_id": "EVT-LATE",
+    "unexpected_source_flag": "additive-schema-change"
+  }
+]

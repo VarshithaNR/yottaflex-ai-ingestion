@@ -1,0 +1,32 @@
+{
+  "customers": 5,
+  "orders_in_source": 30,
+  "seed": 731,
+  "scenario": "quality-mix",
+  "expected_quality_cases": {
+    "exact_duplicate_event": {
+      "source_event_id": "EVT-00000000",
+      "expected": "count as a duplicate without adding a second event"
+    },
+    "conflicting_duplicate_event_id": {
+      "source_event_id": "EVT-00000000",
+      "expected": "quarantine the payload conflict"
+    },
+    "missing_required_status": {
+      "source_event_id": "EVT-MISSING-STATUS",
+      "expected": "quarantine for missing status"
+    },
+    "unknown_customer_reference": {
+      "source_event_id": "EVT-INVALID-FK",
+      "expected": "quarantine for unknown customer_id"
+    },
+    "late_arriving_event": {
+      "source_event_id": "EVT-LATE",
+      "expected": "retain in event history without replacing newer current state"
+    },
+    "additive_schema_field": {
+      "field": "unexpected_source_flag",
+      "expected": "preserve in raw payload and report as unexpected"
+    }
+  }
+}

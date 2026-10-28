@@ -1,13 +1,27 @@
-# AI prompt history
+# AI Prompt History
 
-## Initial project prompt
+The complete initial implementation brief is preserved in [initial-project-prompt.txt](initial-project-prompt.txt). The expanded YottaFlex acceptance brief is preserved in [expanded-yottaflex-challenge.txt](expanded-yottaflex-challenge.txt). The submission-specific rules pasted later are preserved in [submission-guidelines.txt](submission-guidelines.txt).
 
-The user supplied the full “Reliable API Data Ingestion Pipeline” 72-hour coding challenge brief in the project conversation. It requested a complete Python API ingestion vertical slice, mock FastAPI service, SQLite storage/checkpoints, raw retention, quarantine, retry behavior, tests, documentation, and truthful execution evidence.
+## Tool and prompt log
 
-## Disclosure for candidate review
+### 2026-10-28 — Codex (GPT-6)
 
-AI assistance was used to scaffold and implement portions of the project and draft documentation/tests. The candidate should personally inspect and understand the code, run and review the tests, verify every result, correct issues, and replace this disclosure with an accurate account of their own review before submission.
+**Prompt:** Build the reliable paginated API ingestion project described in `initial-project-prompt.txt`.
 
-## Append later prompts
+**AI-assisted work:** implementation planning, code scaffolding and changes across ingestion, validation, storage, mock API, tests, documentation, debugging, and validation. Codex ran the local tests, API demonstrations, and benchmark recorded in `docs/validation_results.md`.
 
-Add each subsequent AI prompt and tool/model used under a dated heading. Do not backfill prompts that were not recorded.
+### 2026-10-28 — Codex (GPT-6)
+
+**Prompt:** Review the project against the supplied YottaFlex submission guidelines and update it so it covers those conditions.
+
+**AI-assisted work:** local acceptance-gap review, sample and quality-mix data support, reconciliation reporting and SQL, expanded tests, and documentation updates. Public GitHub publication is still pending a connected GitHub account and destination repository.
+
+**Candidate follow-up:** confirm that the first-person disclosure below matches your own work before submitting; edit it to describe only work you personally performed.
+
+## Candidate disclosure — verify and complete before submission
+
+AI assistance was substantial in the implementation and documentation. Replace this note with an accurate first-person account of the parts you personally inspected, changed, tested, and can explain. Do not claim review or validation work you did not perform. Be ready to walk through the retry policy, checkpoint boundary, event/current-state rules, reconciliation report, benchmark limitations, and known gaps.
+
+## Append future prompts
+
+For every later AI-assisted change, append a dated heading with the tool/model, the exact prompt or a faithful summary, what AI contributed, and what the candidate personally reviewed or validated. Keep personal statements candidate-verified.

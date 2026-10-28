@@ -5,6 +5,7 @@ from pathlib import Path
 from .client import APIClient
 from .storage import Store
 from .validation import validate_customer, validate_order
+from .reporting import build_run_report, write_quarantine_manifest
 
 log=logging.getLogger(__name__)
 def utcnow(): return datetime.now(timezone.utc).isoformat()
@@ -25,13 +26,14 @@ def ingest(config, streams=("customers","orders"), backfill=False):
                 rows=payload.get("items")
                 if not isinstance(rows,list): raise ValueError(f"{stream} page {page}: items must be a list")
                 metrics["pages_fetched"]+=1; metrics["raw_records"]+=len(rows)
-                accepted=[]; rejects=[]; duplicates=0
+                log.info("Fetched page run_id=%s stream=%s page=%d records=%d",run_id,stream,page,len(rows))
+                accepted=[]; rejects=[]; duplicates=0; invalid_accepted=0
                 for record in rows:
                     parsed,err=(validate_customer(record) if stream=="customers" else validate_order(record))
                     if err: rejects.append((record,err)); continue
                     accepted.append(parsed)
                 def persist(c):
-                    nonlocal duplicates
+                    nonlocal duplicates, invalid_accepted
                     for record,reason in rejects:
                         c.execute("INSERT INTO quarantined_records(run_id,stream,page,record_json,reason,created_at) VALUES(?,?,?,?,?,?)",(run_id,stream,page,json.dumps(record,default=str),reason,utcnow()))
                     for rec in accepted:
@@ -39,32 +41,41 @@ def ingest(config, streams=("customers","orders"), backfill=False):
                             c.execute("INSERT INTO customers VALUES(?,?,?,?) ON CONFLICT(customer_id) DO UPDATE SET name=excluded.name,email=excluded.email,created_at=excluded.created_at",(rec["customer_id"],rec["name"],rec["email"],rec["created_at"]))
                             continue
                         if not c.execute("SELECT 1 FROM customers WHERE customer_id=?",(rec["customer_id"],)).fetchone():
+                            invalid_accepted+=1
                             rejects.append((rec,"unknown customer_id")); c.execute("INSERT INTO quarantined_records(run_id,stream,page,record_json,reason,created_at) VALUES(?,?,?,?,?,?)",(run_id,stream,page,json.dumps(rec),"unknown customer_id",utcnow())); continue
                         digest=hashlib.sha256(json.dumps(rec,sort_keys=True).encode()).hexdigest()
                         old=c.execute("SELECT payload_hash FROM order_events WHERE source_event_id=?",(rec["source_event_id"],)).fetchone()
                         if old:
                             if old[0]==digest: duplicates+=1
                             else:
+                                invalid_accepted+=1
                                 c.execute("INSERT INTO quarantined_records(run_id,stream,page,record_json,reason,created_at) VALUES(?,?,?,?,?,?)",(run_id,stream,page,json.dumps(rec),"conflicting source_event_id",utcnow()))
                                 rejects.append((rec,"conflicting source_event_id"))
                             continue
-                        c.execute("INSERT INTO order_events VALUES(?,?,?,?,?,?,?,?)",(rec["source_event_id"],rec["order_id"],rec["customer_id"],rec["amount"],rec["currency"],rec["status"],rec["updated_at"],digest))
-                        current=c.execute("SELECT updated_at FROM orders WHERE order_id=?",(rec["order_id"],)).fetchone()
-                        if not current or rec["updated_at"]>=current[0]:
+                        c.execute("INSERT INTO order_events(source_event_id,order_id,customer_id,amount,currency,status,updated_at,payload_hash,source_page,ingestion_run_id) VALUES(?,?,?,?,?,?,?,?,?,?)",(rec["source_event_id"],rec["order_id"],rec["customer_id"],rec["amount"],rec["currency"],rec["status"],rec["updated_at"],digest,page,run_id))
+                        current=c.execute("SELECT updated_at,last_event_id FROM orders WHERE order_id=?",(rec["order_id"],)).fetchone()
+                        if not current or (rec["updated_at"],rec["source_event_id"])>(current[0],current[1]):
                             if current: metrics["updated_records"]+=1
                             else: metrics["inserted_records"]+=1
-                            c.execute("INSERT INTO orders VALUES(?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,amount=excluded.amount,currency=excluded.currency,status=excluded.status,updated_at=excluded.updated_at,last_event_id=excluded.last_event_id",(rec["order_id"],rec["customer_id"],rec["amount"],rec["currency"],rec["status"],rec["updated_at"],rec["source_event_id"]))
+                            c.execute("INSERT INTO orders(order_id,customer_id,amount,currency,status,updated_at,last_event_id,source_page,ingestion_run_id) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,amount=excluded.amount,currency=excluded.currency,status=excluded.status,updated_at=excluded.updated_at,last_event_id=excluded.last_event_id,source_page=excluded.source_page,ingestion_run_id=excluded.ingestion_run_id",(rec["order_id"],rec["customer_id"],rec["amount"],rec["currency"],rec["status"],rec["updated_at"],rec["source_event_id"],page,run_id))
                 store.save_page(stream,page,persist)
-                metrics["accepted_records"]+=len(accepted)-sum(1 for _,e in rejects if e=="unknown customer_id")
+                metrics["accepted_records"]+=len(accepted)-invalid_accepted
                 metrics["rejected_records"]+=len(rejects); metrics["duplicates"]+=duplicates
                 if not payload.get("has_more"): break
                 page+=1
         metrics["retries"]=client.retries; elapsed=time.monotonic()-started
+        quarantine_file=write_quarantine_manifest(config.database_path,config.quarantine_dir,run_id)
+        metrics["quarantine_file"]=str(quarantine_file)
         with store.connect() as c: c.execute("UPDATE ingestion_runs SET ended_at=?,status='succeeded',pages_fetched=?,raw_records=?,accepted_records=?,inserted_records=?,updated_records=?,duplicates=?,rejected_records=?,retries=?,elapsed_seconds=? WHERE run_id=?",(utcnow(),metrics["pages_fetched"],metrics["raw_records"],metrics["accepted_records"],metrics["inserted_records"],metrics["updated_records"],metrics["duplicates"],metrics["rejected_records"],metrics["retries"],elapsed,run_id))
         metrics.update(store.counts()); metrics["elapsed_seconds"]=elapsed; metrics["records_per_second"]=metrics["raw_records"]/elapsed if elapsed else 0
-        (Path("artifacts/reports")/f"{run_id}.json").parent.mkdir(parents=True,exist_ok=True)
-        Path("artifacts/reports",f"{run_id}.json").write_text(json.dumps(metrics,indent=2),encoding="utf-8")
+        metrics.update(build_run_report(config.database_path,config.raw_dir,run_id))
+        reports_dir=Path(getattr(config,"reports_dir","artifacts/reports")); reports_dir.mkdir(parents=True,exist_ok=True)
+        (reports_dir/f"{run_id}.json").write_text(json.dumps(metrics,indent=2),encoding="utf-8")
+        log.info("Ingestion succeeded run_id=%s raw_records=%d accepted=%d rejected=%d retries=%d elapsed_seconds=%.3f",run_id,metrics["raw_records"],metrics["accepted_records"],metrics["rejected_records"],metrics["retries"],elapsed)
         return metrics
     except Exception as exc:
         with store.connect() as c: c.execute("UPDATE ingestion_runs SET ended_at=?,status='failed',failure=?,pages_fetched=?,raw_records=?,retries=? WHERE run_id=?",(utcnow(),str(exc),metrics["pages_fetched"],metrics["raw_records"],client.retries,run_id))
+        try: write_quarantine_manifest(config.database_path,config.quarantine_dir,run_id)
+        except OSError: log.exception("Could not export quarantine manifest run_id=%s",run_id)
+        log.exception("Ingestion failed run_id=%s pages=%d raw_records=%d",run_id,metrics["pages_fetched"],metrics["raw_records"])
         raise

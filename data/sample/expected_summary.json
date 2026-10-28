@@ -1,0 +1,7 @@
+{
+  "customers": 5,
+  "orders_in_source": 25,
+  "seed": 731,
+  "scenario": "normal",
+  "expected_valid_order_events": 25
+}
