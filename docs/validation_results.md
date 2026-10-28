@@ -4,7 +4,7 @@
 
 - Python 3.14.6 on Windows; pinned packages installed into the ignored `work/site` scratch directory because this environment denied writes to the default Python package and temp locations.
 - `python -m compileall -q app tests`: passed.
-- `python -m pytest -q --basetemp work\\pytesttmp`: **53 passed, 10 skipped** (the skips came from the installed pytest environment; no failures).
+- `python -m pytest -q` (project `testpaths=tests`): **12 passed, 0 skipped**.
 
 ## End-to-end runs
 

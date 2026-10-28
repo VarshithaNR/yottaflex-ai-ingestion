@@ -34,6 +34,6 @@ Customer email and required fields are validated; orders require non-negative de
 
 ## Tests and evidence
 
-Run `python -m pytest -q`. The observed environment result was 53 passed, 10 skipped. A local 100,000-order run completed in 36.04 seconds (3,329.78 raw rows/second) at page size 1,000 on Python 3.14.6/Windows; see [validation results](docs/validation_results.md) for counts and the repeat-run result. This is an illustrative single run, not a controlled performance comparison.
+Run `python -m pytest -q`. The observed project test result was 12 passed. A local 100,000-order run completed in 36.04 seconds (3,329.78 raw rows/second) at page size 1,000 on Python 3.14.6/Windows; see [validation results](docs/validation_results.md) for counts and the repeat-run result. This is an illustrative single run, not a controlled performance comparison.
 
 Target entity row counts can differ from source rows: source rows may repeat event IDs, invalid records are quarantined, multiple events can update one order, and customers are separate entities. `order_events` preserves logical event history while `orders` contains one current row per order.

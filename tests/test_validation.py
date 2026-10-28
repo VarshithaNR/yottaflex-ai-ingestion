@@ -12,3 +12,11 @@ def test_order_rules():
     assert validate_order(row)[0]["amount"]==row["amount"]
     row["amount"]="-1"
     assert "non-negative" in validate_order(row)[1]
+
+def test_null_required_values_and_naive_timestamp_are_rejected():
+    row=make_dataset(1)["orders"][0]
+    row["order_id"]=None
+    assert validate_order(row)[1]
+    row=make_dataset(1)["orders"][0]
+    row["updated_at"]="2025-01-01T00:00:00"
+    assert "timezone" in validate_order(row)[1]
