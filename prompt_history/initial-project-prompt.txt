@@ -1,0 +1,344 @@
+# Project: Reliable API Data Ingestion Pipeline
+
+Act as a senior data engineer and coding mentor. Build a complete, runnable, well-tested Data Engineering project for a 72-hour Associate AI Forward Deployed Engineer coding challenge.
+
+## 1. Core objective
+
+Implement a reliable API ingestion pipeline that consumes paginated API data and handles:
+
+- Configurable authentication.
+- Rate limiting and HTTP 429 responses.
+- Transient network errors and server errors.
+- Exponential backoff and retry limits.
+- Incremental checkpoints and restart recovery.
+- Raw API response retention.
+- Schema and business-rule validation.
+- Duplicate handling and referential integrity.
+- Rejected-record quarantine with traceable reasons.
+- Idempotent target publishing.
+- Run-level operational metrics and structured logging.
+- Reproducible mock API behavior.
+- Automated tests and measurable performance.
+
+Build a complete vertical slice. Prioritize correctness, simplicity, maintainability, reproducibility and honest validation over unnecessary complexity.
+
+## 2. Technology stack
+
+Use:
+- Python 3.11 or newer.
+- FastAPI and Uvicorn for the local mock source API.
+- Requests for HTTP ingestion.
+- Pydantic for configuration and schema validation where appropriate.
+- SQLite for durable target data, run metadata and checkpoints.
+- JSON Lines or JSON files for raw-response retention and quarantine.
+- Pytest for automated tests.
+- Standard Python logging and timing utilities.
+- Faker only if needed for scalable synthetic data generation.
+
+Pin compatible dependencies in requirements.txt. Avoid Docker, cloud services, paid APIs and external credentials unless genuinely necessary.
+
+Check the installed Python version and available environment before choosing commands. Do not claim that a command succeeded unless you actually ran it and observed the result.
+
+## 3. Domain and data model
+
+Use a realistic synthetic business domain: customer orders.
+
+Define these entities:
+
+1. customers
+   - customer_id: stable string primary key
+   - name: required non-empty string
+   - email: required valid email
+   - created_at: ISO-8601 UTC timestamp
+
+2. orders
+   - order_id: stable string primary key
+   - customer_id: required foreign key to customers
+   - amount: decimal-compatible non-negative monetary value
+   - currency: three-letter currency code
+   - status: constrained set of order states
+   - updated_at: ISO-8601 UTC timestamp
+   - source_event_id: stable source event identifier
+   - source_page or source cursor where appropriate
+   - ingestion_run_id: identifier for the processing run
+
+Document record grain, keys, nullability, constraints, relationships, assumptions and derived fields.
+
+Include an event or audit history for meaningful changes rather than silently discarding change history. Clearly distinguish event-level uniqueness from current-state order uniqueness.
+
+Use deterministic synthetic IDs and a fixed random seed. Keep any expected-answer labels separate from source input records.
+
+## 4. Repository structure
+
+Create a clean structure similar to:
+
+reliable-api-ingestion/
+  app/
+    __init__.py
+    config.py
+    models.py
+    mock_api.py
+    client.py
+    ingestion.py
+    validation.py
+    storage.py
+    reporting.py
+    generator.py
+    cli.py
+  tests/
+    test_validation.py
+    test_ingestion.py
+    test_retries.py
+    test_idempotency.py
+    test_checkpoints.py
+    test_reporting.py
+  data/
+    sample/
+  artifacts/
+    raw/
+    quarantine/
+    reports/
+  docs/
+    architecture.md
+    data_dictionary.md
+    design_decisions.md
+    validation_results.md
+  prompt_history/
+    prompts.md
+  README.md
+  requirements.txt
+  .env.example
+  .gitignore
+
+Adjust the structure if a simpler design is more maintainable, but retain clear separation of concerns.
+
+## 5. Mock API requirements
+
+Build a local FastAPI service with endpoints for paginated customer and order records.
+
+Support:
+- Page-based pagination or cursor-based pagination, documented clearly.
+- Configurable page size.
+- Synthetic dataset generation.
+- Optional bearer-token authentication with a configurable local test token.
+- HTTP 429 responses with Retry-After.
+- Temporary HTTP 500 failures.
+- Simulated timeout or connection failure where practical.
+- Malformed records and missing fields.
+- Duplicate source records.
+- Unexpected schema fields.
+- Late-arriving or out-of-order events.
+- Empty result sets.
+- Deterministic fault injection for repeatable tests.
+
+Fault injection must be configurable and deterministic. Provide a normal mode that succeeds and explicit scenarios that trigger failures. Do not make the normal run randomly fail.
+
+Never embed real secrets. Use dummy credentials only in tests and document the environment-variable configuration.
+
+## 6. Ingestion engine
+
+Implement readable, typed functions with useful docstrings.
+
+Requirements:
+- Fetch all pages until completion.
+- Handle network exceptions, HTTP 429 and retryable 5xx responses.
+- Respect Retry-After where provided.
+- Use configurable exponential backoff and a maximum retry count.
+- Avoid retrying permanent client errors unnecessarily.
+- Validate responses and detect unexpected schemas.
+- Persist each raw API response before processing it further.
+- Preserve enough metadata to trace each record to its original response, page/cursor and run.
+- Use a durable checkpoint with clear semantics.
+- Advance the checkpoint only after the corresponding page has been durably handled.
+- Ensure partial failure and restart do not silently skip records.
+- Make retries and repeated runs safe.
+- Support incremental ingestion and a documented backfill mode.
+- Make the page size, request timeout, retry count, paths and database configurable.
+- Separate transport, validation, transformation, storage and reporting logic.
+
+Do not pretend page-number checkpoints guarantee correctness if the upstream source can change between page requests. Explain the limitation and use a stable cursor or deterministic mock source when appropriate.
+
+## 7. Validation and transformation
+
+Implement deterministic validation rules.
+
+At minimum, reject:
+- Malformed JSON.
+- Missing required fields.
+- Null or invalid primary keys.
+- Invalid email addresses.
+- Negative amounts.
+- Invalid timestamps.
+- Unsupported currency or status values.
+- Orders referencing nonexistent customers.
+- Invalid source event IDs.
+
+Handle duplicates using explicit documented policies:
+- Exact duplicate source events should not create duplicate target rows.
+- Conflicting records with the same event ID must be detected and quarantined or reported.
+- Repeated order IDs with newer legitimate events should follow a documented current-state and history policy.
+
+Quarantine records with:
+- Original record or raw-response reference.
+- Run ID.
+- Source page/cursor.
+- Rejection reason and validation error.
+- Processing timestamp.
+
+Do not silently drop invalid records. Separate record-level data-quality errors from fatal pipeline errors.
+
+Unexpected schema changes must be observable and handled according to an explicit policy.
+
+## 8. Storage and idempotency
+
+Use SQLite with appropriate primary keys, foreign keys, indexes and transactions.
+
+Create tables for:
+- customers
+- orders
+- order_events or equivalent change history
+- ingestion_runs
+- checkpoints
+- quarantined_records or a durable quarantine manifest
+
+Include stable run IDs, UTC start/end timestamps, status, pages fetched, raw records received, accepted records, inserted/updated records, duplicates, rejected records, retry counts, elapsed time and failure details.
+
+Use atomic transactions for target writes and checkpoint advancement where feasible. Explain any boundary between file writes and database transactions and how recovery handles it.
+
+Rerunning the same input must not create unintended duplicate target records or duplicate logical events.
+
+Support a clean reset for test/demo purposes, with a clear warning before destructive actions.
+
+## 9. CLI and reproducible execution
+
+Provide simple documented commands, for example:
+
+- Start the mock API.
+- Generate a small deterministic sample dataset.
+- Run the ingestion pipeline.
+- Run the pipeline against an empty dataset.
+- Trigger a controlled transient failure and demonstrate retry.
+- Demonstrate checkpoint recovery.
+- Rerun the same dataset and verify idempotency.
+- Run validation and reconciliation reports.
+- Generate a larger dataset, including 100,000+ records where practical.
+- Run a benchmark and report throughput.
+
+Use argparse or an equally simple CLI.
+
+Make startup order, ports, environment variables and prerequisites explicit. Ensure the default local workflow does not require internet access beyond installing dependencies.
+
+Provide Windows PowerShell commands as well as Unix/macOS commands where practical.
+
+## 10. Automated tests
+
+Create meaningful pytest tests covering:
+1. Happy-path ingestion.
+2. Empty input.
+3. Malformed JSON or malformed records.
+4. Missing required fields.
+5. Null values and invalid data types.
+6. Exact duplicate records.
+7. Conflicting duplicate event IDs.
+8. Invalid foreign keys.
+9. Rate limiting and Retry-After.
+10. Retry after transient HTTP 500.
+11. Exhausted retries and failure reporting.
+12. Checkpoint persistence and restart.
+13. Rerunning identical input.
+14. Late/out-of-order events.
+15. Unexpected schema changes.
+16. Transaction rollback or interrupted processing.
+17. Reconciliation counts and aggregates.
+
+Use temporary directories and isolated SQLite databases in tests. Tests must not depend on a running external service.
+
+Do not weaken assertions merely to make tests pass. Fix implementation defects instead.
+
+## 11. Reconciliation and performance
+
+Generate a validation report containing:
+- Raw source record count.
+- Unique source event count.
+- Accepted record count.
+- Inserted and updated counts.
+- Duplicate count.
+- Rejected count.
+- Target table counts.
+- Referential integrity failures.
+- Source-to-target aggregate comparisons.
+- Run duration and records per second.
+
+Explain why source rows, unique events, accepted records and target entity rows may legitimately differ.
+
+Add executable SQL reconciliation queries or equivalent assertions.
+
+Benchmark at least one larger synthetic workload. Report the actual environment, dataset size, elapsed time, throughput and limitations. Never fabricate benchmark numbers.
+
+Identify one measured or reasoned optimization, such as batched SQLite inserts, indexes or reduced serialization overhead. If possible, compare before and after.
+
+## 12. Documentation
+
+Write a professional README that includes:
+- Problem and solution overview.
+- Architecture diagram using Mermaid.
+- Requirements and installation.
+- Environment configuration.
+- Exact commands to start the mock API and execute the pipeline.
+- Example output.
+- Database schema and data dictionary links.
+- Testing instructions.
+- Failure/retry demonstration.
+- Checkpoint and restart behavior.
+- Idempotency demonstration.
+- Reconciliation results.
+- Benchmark results.
+- Design trade-offs.
+- Assumptions and known limitations.
+- Future improvements.
+
+Add docs/design_decisions.md explaining important decisions and alternatives rejected.
+
+Add docs/validation_results.md containing only test and execution results actually observed. Clearly mark anything not yet run.
+
+## 13. AI usage transparency
+
+Maintain prompt_history/prompts.md.
+
+Record the prompts used with AI tools, including this initial prompt, and provide a practical way to append subsequent prompts and their tool names. Do not fabricate historical prompts or claim that AI was not used.
+
+Add a short disclosure describing which tasks were AI-assisted and which implementation decisions, code reviews, tests and corrections were personally checked by the candidate. Leave candidate-specific statements for the candidate to verify and complete.
+
+Do not copy proprietary code or an existing complete solution. Do not expose API keys, access tokens, personal data or credentials.
+
+## 14. Execution and verification
+
+Work directly in the current project directory.
+
+First inspect the environment and existing files. Preserve unrelated user work. If the directory is not a Git repository, initialize Git only after checking that doing so will not disrupt an existing repository.
+
+Then:
+1. Implement the smallest complete vertical slice.
+2. Run syntax checks and the complete automated test suite.
+3. Start the mock API and run an end-to-end ingestion demonstration.
+4. Demonstrate a transient failure, recovery, checkpoint behavior and identical-input rerun.
+5. Generate a validation/reconciliation report.
+6. Run a larger benchmark if practical.
+7. Fix all discovered defects and rerun relevant tests.
+8. Inspect the repository for secrets, local databases, caches and unnecessary generated files.
+9. Verify all README commands and paths.
+10. Summarize exactly what passed, what failed, and what remains incomplete.
+
+Do not claim the project is complete if tests or demonstrations have not actually succeeded.
+
+Do not create a GitHub repository or publish code remotely unless explicitly authorized by the user. Do not invent repository URLs.
+
+## 15. Working style
+
+Build a correct, understandable solution rather than generating many files without validating them.
+
+Explain important design decisions in plain language so the candidate can learn the implementation and defend it in a technical walkthrough.
+
+Use meaningful, truthful Git commits as work progresses. Never fabricate development history or tests.
+
+Begin by inspecting the environment and presenting a brief implementation plan. Then implement the project and verify each major component before continuing.

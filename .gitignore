@@ -1,0 +1,12 @@
+.venv/
+work/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.sqlite*
+artifacts/raw/*
+artifacts/quarantine/*
+artifacts/reports/*
+!artifacts/raw/.gitkeep
+!artifacts/quarantine/.gitkeep
+!artifacts/reports/.gitkeep
